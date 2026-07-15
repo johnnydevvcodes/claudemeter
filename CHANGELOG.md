@@ -5,6 +5,22 @@ All notable changes to **claudemeter** are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] — 2026-07-15
+
+### Changed (breaking)
+- **Weekly rows now show REAL token counts instead of a percentage.** The
+  previous budget-based percentage had no honest denominator (your true plan
+  limit is fetched live by Claude and never stored locally), so it could show
+  wildly different usages at the same %. Rows now display actual weekly token
+  counts (e.g. `194.6M tokens`) — verifiable and unambiguous.
+- **Weekly reset uses the REAL plan reset time** (`planLimitsEndDate` from
+  Claude Code's `~/.claude.json` cache), rolling forward weekly if stale.
+- Removed the `budget` / `budgetHeadroom` percentage machinery for weekly rows.
+
+### Notes
+- Static manual `%` rows (`{ label, pct, resets }`) are still supported.
+- The `current session` bar remains time-based (elapsed in the 5-hour block).
+
 ## [1.3.0] — 2026-07-15
 
 ### Added
@@ -64,6 +80,7 @@ First public release.
   it still points at claudemeter.
 - MIT license, example config, and documentation.
 
+[2.0.0]: https://github.com/johnnydevvcodes/claudemeter/releases/tag/v2.0.0
 [1.3.0]: https://github.com/johnnydevvcodes/claudemeter/releases/tag/v1.3.0
 [1.2.1]: https://github.com/johnnydevvcodes/claudemeter/releases/tag/v1.2.1
 [1.2.0]: https://github.com/johnnydevvcodes/claudemeter/releases/tag/v1.2.0

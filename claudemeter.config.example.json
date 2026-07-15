@@ -2,7 +2,7 @@
   "barWidth": 6,
   "showContext": false,
   "weekly": [
-    { "label": "all models", "model": "all", "budget": 250000000 },
-    { "label": "fable", "model": "fable", "budget": 20000000 }
+    { "label": "all models", "model": "all" },
+    { "label": "fable", "model": "fable" }
   ]
 }

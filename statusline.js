@@ -1,31 +1,35 @@
 #!/usr/bin/env node
 /**
- * claudemeter — a Claude Code status line with live usage bars.
+ * claudemeter — a Claude Code status line with honest, local usage info.
  *
- * Shows, on every prompt (default layout):
- *   • current session : how far into the active 5-hour block you are (+ reset countdown)  [LIVE]
- *   • all models      : static placeholder weekly bucket (edit in config)                 [MANUAL]
- *   • fable           : static placeholder weekly bucket (edit in config)                 [MANUAL]
- *   • context         : context-window fill % — opt-in via "showContext": true            [LIVE]
+ * Default layout:
+ *   • current session : how far into the active 5-hour block you are (+ reset countdown)  [LIVE, time-based]
+ *   • all models      : your REAL combined weekly token usage (+ real plan reset)          [LIVE, real count]
+ *   • fable           : your REAL weekly token usage for Fable models                      [LIVE, real count]
+ *   • context         : context-window fill % — opt-in via "showContext": true             [LIVE]
  *
- * Everything runs locally via `ccusage` reading ~/.claude logs — it sends
- * nothing to any API and consumes zero tokens / plan quota.
+ * Everything runs locally via `ccusage` (reading ~/.claude logs) and Claude
+ * Code's own cache (~/.claude.json). It sends nothing to any API and consumes
+ * zero tokens / plan quota.
  *
- * IMPORTANT: the "all models" / "fable" percentages are STATIC placeholders,
- * not your real usage. Real plan-limit percentages aren't available to any
- * script (only Claude Code's built-in /usage command has them). Edit or hide
- * them via the config file.
+ * HONESTY NOTE: your true plan-limit *percentages* (Claude's /usage panel) are
+ * fetched live from Anthropic's servers and are never stored locally, so no
+ * script can show them. claudemeter shows only what is verifiably on disk:
+ * real token counts and the real weekly reset time (planLimitsEndDate).
  *
  * Optional config: ~/.claude/claudemeter.config.json
  *   {
  *     "barWidth": 6,
  *     "showContext": false,
  *     "weekly": [
- *       { "label": "all models", "pct": 24, "resets": "Tue 5:59 AM" },
- *       { "label": "fable",      "pct": 15, "resets": "Tue 5:59 AM" }
+ *       { "label": "all models", "model": "all",   "resets": "..." },
+ *       { "label": "fable",      "model": "fable" }
  *     ]
  *   }
- * Set "weekly": [] to hide the placeholder rows entirely.
+ * A weekly entry is either:
+ *   • COUNT  — { label, model: "all" | "<model-substring>", resets?: text }  (real tokens)
+ *   • STATIC — { label, pct, resets? }                                       (manual % bar)
+ * Set "weekly": [] to hide the weekly rows entirely.
  */
 const { execSync } = require("child_process");
 const fs = require("fs");
@@ -71,18 +75,40 @@ function fmtLong(ms) {
   const h = Math.round((ms % 86400000) / 3600000);
   return (d ? d + "d " : "") + h + "h";
 }
+function fmtTokens(n) {
+  n = n || 0;
+  if (n >= 1e9) return (n / 1e9).toFixed(1) + "B";
+  if (n >= 1e6) return (n / 1e6).toFixed(1) + "M";
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + "K";
+  return String(n);
+}
 
-// Monday (local) of the week containing `date`, as a YYYY-MM-DD string —
-// matches ccusage's week-start convention.
+// Monday (local) of the week containing `date`, as YYYY-MM-DD — matches
+// ccusage's week-start convention.
 function mondayISO(date) {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); // shift back to Monday
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
   const p = (n) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
-// Real weekly usage from ccusage (cached; loaded lazily).
+// Real weekly reset time from Claude Code's own cache (~/.claude.json).
+// Falls back to the calendar-week boundary if the cache is missing.
+function weeklyResetMs() {
+  try {
+    const j = JSON.parse(fs.readFileSync(path.join(os.homedir(), ".claude.json"), "utf8"));
+    const iso = j?.cachedGrowthBookFeatures?.tengu_saffron_lattice?.planLimitsEndDate;
+    let t = iso ? new Date(iso).getTime() : NaN;
+    if (!isNaN(t)) {
+      while (t < Date.now()) t += 7 * 86400000; // roll weekly if the cached date is stale
+      return t;
+    }
+  } catch {}
+  return new Date(mondayISO(new Date()) + "T00:00:00").getTime() + 7 * 86400000;
+}
+
+// Real weekly token usage from ccusage (cached; loaded lazily).
 let _weekly;
 function loadWeekly() {
   if (_weekly !== undefined) return _weekly;
@@ -91,34 +117,23 @@ function loadWeekly() {
     const j = JSON.parse(execSync("ccusage weekly --breakdown --json 2>/dev/null", { encoding: "utf8" }));
     const weeks = j.weekly || [];
     const tok = (m) => m ? (m.inputTokens || 0) + (m.outputTokens || 0) + (m.cacheCreationTokens || 0) + (m.cacheReadTokens || 0) : 0;
-    let peakAll = 0;
-    const peakModel = {};
-    for (const w of weeks) {
-      peakAll = Math.max(peakAll, w.totalTokens || 0);
-      for (const m of w.modelBreakdowns || [])
-        peakModel[m.modelName] = Math.max(peakModel[m.modelName] || 0, tok(m));
-    }
-    // Only treat the latest entry as "this week" if its start matches the
-    // actual current week — otherwise there's been no usage yet (→ 0%).
-    const thisMonday = mondayISO(new Date());
     const last = weeks[weeks.length - 1];
-    const cur = last && last.period === thisMonday ? last : null;
-    const resetMs = new Date(thisMonday + "T00:00:00").getTime() + 7 * 86400000;
-    _weekly = { cur, tok, peakAll, peakModel, resetMs };
+    // Only count the latest entry if it's actually the current week.
+    const cur = last && last.period === mondayISO(new Date()) ? last : null;
+    _weekly = { cur, tok };
   } catch {}
   return _weekly;
 }
 
-// Real used/peak tokens for a weekly row. key "all" = combined, else model-name substring.
-// used is 0 when the current week has no usage yet.
-function weeklyUsage(key) {
+// Real tokens used this week for a row. key "all" = combined, else model substring.
+// Returns null when ccusage has no data (→ skip the row), 0 when the week is empty.
+function weeklyTokens(key) {
   const w = loadWeekly();
   if (!w) return null;
-  if (key === "all") return { used: w.cur ? w.cur.totalTokens || 0 : 0, peak: w.peakAll };
-  let peak = 0;
-  for (const [name, p] of Object.entries(w.peakModel)) if (name.includes(key)) peak = Math.max(peak, p);
-  const mb = w.cur ? (w.cur.modelBreakdowns || []).find((m) => m.modelName.includes(key)) : null;
-  return { used: mb ? w.tok(mb) : 0, peak };
+  if (!w.cur) return 0;
+  if (key === "all") return w.cur.totalTokens || 0;
+  const mb = (w.cur.modelBreakdowns || []).find((m) => m.modelName.includes(key));
+  return mb ? w.tok(mb) : 0;
 }
 
 const rows = [];
@@ -149,38 +164,22 @@ if (cfg.showContext === true) {
   } catch {}
 }
 
-// Weekly rows. Two kinds of entry:
-//   • LIVE  — { label, model: "all" | "<model-substring>", budget?: <tokens>, resets?: text }
-//             pct = this week's real tokens / budget. budget defaults to your
-//             busiest week on record (a real, self-referential ceiling). Set
-//             "budget" to your actual weekly token allowance for a true limit %.
-//   • STATIC — { label, pct, resets }  (a fixed placeholder you edit by hand)
-// NOTE: real plan-limit percentages aren't exposed to any script (only Claude
-// Code's /usage command has them), so LIVE rows are % of a token budget, not
-// of your Anthropic plan cap. Set "weekly": [] to hide these rows.
+// Weekly rows — real token counts by default, with the real plan reset time.
 const DEFAULT_WEEKLY = [
   { label: "all models", model: "all" },
   { label: "fable", model: "fable" },
 ];
-// Smart default ceiling: without an explicit budget, use 1.5x your busiest
-// week so a peak week reads ~67% (yellow, not a pinned red 100%) and
-// lighter/fresh weeks scale below it. Set a real "budget" per row for a true
-// limit gauge, or tune "budgetHeadroom" in the config.
-const HEADROOM = cfg.budgetHeadroom || 1.5;
 const weekly = Array.isArray(cfg.weekly) ? cfg.weekly : DEFAULT_WEEKLY;
+const resetTxt = "resets in " + fmtLong(weeklyResetMs() - Date.now());
 for (const w of weekly) {
+  const reset = w.resets ? "resets " + w.resets : resetTxt;
   if (w.model) {
-    const u = weeklyUsage(w.model);
-    if (!u) continue; // no ccusage data — skip rather than show a fake number
-    const baseline = u.peak || u.used; // busiest week (or this week if it's the only data)
-    const budget = w.budget || (baseline ? baseline * HEADROOM : 1);
-    const pct = Math.min(100, Math.round((u.used / budget) * 100));
-    let reset = w.resets ? "resets " + w.resets : "";
-    const wk = loadWeekly();
-    if (!w.resets && wk && wk.resetMs) reset = "resets in " + fmtLong(wk.resetMs - Date.now());
-    rows.push({ label: w.label, pct, reset });
+    const used = weeklyTokens(w.model);
+    if (used === null) continue; // no ccusage data — skip rather than invent a number
+    rows.push({ label: w.label, count: used, reset });
   } else {
-    rows.push({ label: w.label, pct: w.pct, reset: w.resets ? "resets " + w.resets : "" });
+    // manual static % bar (backward compatible)
+    rows.push({ label: w.label, pct: w.pct, reset });
   }
 }
 
@@ -189,12 +188,16 @@ if (!rows.length) {
   process.exit(0);
 }
 
-// pad "<label>:" to a common width so every bar starts at the same column
+// Align: pad labels to a common width; right-align token counts among themselves.
 const labelW = Math.max(...rows.map((r) => r.label.length)) + 1;
+const countW = Math.max(0, ...rows.filter((r) => r.count !== undefined).map((r) => fmtTokens(r.count).length));
 const lines = rows.map((r) => {
   const lbl = (r.label + ":").padEnd(labelW);
-  const pct = String(r.pct).padStart(3);
-  return `${lbl} ${bar(r.pct)} ${pct}%${r.reset ? "  [" + r.reset + "]" : ""}`;
+  const tail = r.reset ? "  [" + r.reset + "]" : "";
+  if (r.count !== undefined) {
+    return `${lbl} ${fmtTokens(r.count).padStart(countW)} tokens${tail}`;
+  }
+  return `${lbl} ${bar(r.pct)} ${String(r.pct).padStart(3)}%${tail}`;
 });
 
 process.stdout.write(lines.join("\n"));
