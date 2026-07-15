@@ -50,7 +50,7 @@ The weekly rows show **this week's actual token usage** as a percentage of a **b
 > A percentage needs a ceiling. Your **true plan-limit** (what Claude's `/usage` panel divides by) lives on Anthropic's servers and is **not exposed to any script** — only Claude Code's built-in `/usage` can read it. So claudemeter divides your real usage by a **budget you choose**:
 >
 > - **With a `budget`** (recommended) — `pct = this week's tokens ÷ your weekly token allowance`. Meaningful and honest.
-> - **Without a `budget`** — it falls back to *% of your busiest week on record*, which is real but often reads **100%** during a heavy week.
+> - **Without a `budget`** — the ceiling defaults to **1.5× your busiest week on record**, so your heaviest week reads ~**67%** (yellow) and lighter or fresh weeks scale below it. A brand-new/empty week reads **0%**. Tune the multiplier with `budgetHeadroom`.
 >
 > Set `budget` (in tokens) per row in the config, or `"weekly": []` to hide these rows and rely on `current session` alone.
 
@@ -73,6 +73,7 @@ Create `~/.claude/claudemeter.config.json` (see [`claudemeter.config.example.jso
 |---|---|---|
 | `barWidth` | `6` | Number of segments per bar |
 | `showContext` | `false` | Show the live context-window bar (opt-in) |
+| `budgetHeadroom` | `1.5` | Default ceiling multiplier for live weekly rows with no explicit `budget` (`1.5` → peak week reads ~67%) |
 | `weekly` | live `all models` + `fable` | Weekly rows (see below). Set to `[]` to hide them. |
 
 **Weekly row entries** can be either:

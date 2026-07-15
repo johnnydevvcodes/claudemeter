@@ -162,13 +162,19 @@ const DEFAULT_WEEKLY = [
   { label: "all models", model: "all" },
   { label: "fable", model: "fable" },
 ];
+// Smart default ceiling: without an explicit budget, use 1.5x your busiest
+// week so a peak week reads ~67% (yellow, not a pinned red 100%) and
+// lighter/fresh weeks scale below it. Set a real "budget" per row for a true
+// limit gauge, or tune "budgetHeadroom" in the config.
+const HEADROOM = cfg.budgetHeadroom || 1.5;
 const weekly = Array.isArray(cfg.weekly) ? cfg.weekly : DEFAULT_WEEKLY;
 for (const w of weekly) {
   if (w.model) {
     const u = weeklyUsage(w.model);
     if (!u) continue; // no ccusage data — skip rather than show a fake number
-    const budget = w.budget || u.peak || 1;
-    const pct = Math.round((u.used / budget) * 100);
+    const baseline = u.peak || u.used; // busiest week (or this week if it's the only data)
+    const budget = w.budget || (baseline ? baseline * HEADROOM : 1);
+    const pct = Math.min(100, Math.round((u.used / budget) * 100));
     let reset = w.resets ? "resets " + w.resets : "";
     const wk = loadWeekly();
     if (!w.resets && wk && wk.resetMs) reset = "resets in " + fmtLong(wk.resetMs - Date.now());
