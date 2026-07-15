@@ -64,6 +64,16 @@ Create `~/.claude/claudemeter.config.json` (see [`claudemeter.config.example.jso
 | `showContext` | `true` | Show the context-window bar |
 | `weekly` | `[]` | Static buckets: `label`, `pct` (0–100), optional `resets` text |
 
+## How it works — and is it safe?
+
+Short version: **yes, it's safe, and it costs you nothing.** `claudemeter` is a small, readable Node script that runs entirely on your machine.
+
+- **No network, no API calls.** The status line shells out to [`ccusage`](https://github.com/ryoppippi/ccusage), which only *reads* the local log files Claude Code already writes to `~/.claude`. Nothing is uploaded anywhere.
+- **Zero tokens, zero plan quota.** Because it never talks to a model, it can't consume tokens or eat into your usage limits. The status line text isn't part of the conversation sent to the model either — it's just UI.
+- **The only cost is a few milliseconds of local CPU** each time the status line refreshes (roughly once per prompt), to spawn `node` + `ccusage`.
+- **Your settings are preserved.** The installer merges a single `statusLine` key into `~/.claude/settings.json` and writes a `settings.json.bak` backup first. Uninstall removes it cleanly — and only if it still points at this tool.
+- **Read before you pipe.** Running any `curl … | bash` installer means trusting the script. This one is short — [read `install.sh`](./install.sh) and [`statusline.js`](./statusline.js) first, or clone and run locally.
+
 ## Requirements
 
 - [Claude Code](https://claude.com/claude-code)
