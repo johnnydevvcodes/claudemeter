@@ -72,6 +72,16 @@ function fmtLong(ms) {
   return (d ? d + "d " : "") + h + "h";
 }
 
+// Monday (local) of the week containing `date`, as a YYYY-MM-DD string —
+// matches ccusage's week-start convention.
+function mondayISO(date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); // shift back to Monday
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
 // Real weekly usage from ccusage (cached; loaded lazily).
 let _weekly;
 function loadWeekly() {
@@ -80,9 +90,7 @@ function loadWeekly() {
   try {
     const j = JSON.parse(execSync("ccusage weekly --breakdown --json 2>/dev/null", { encoding: "utf8" }));
     const weeks = j.weekly || [];
-    if (!weeks.length) return _weekly;
     const tok = (m) => m ? (m.inputTokens || 0) + (m.outputTokens || 0) + (m.cacheCreationTokens || 0) + (m.cacheReadTokens || 0) : 0;
-    const cur = weeks[weeks.length - 1];
     let peakAll = 0;
     const peakModel = {};
     for (const w of weeks) {
@@ -90,21 +98,26 @@ function loadWeekly() {
       for (const m of w.modelBreakdowns || [])
         peakModel[m.modelName] = Math.max(peakModel[m.modelName] || 0, tok(m));
     }
-    let resetMs = null;
-    if (cur.period) resetMs = new Date(cur.period + "T00:00:00").getTime() + 7 * 86400000;
+    // Only treat the latest entry as "this week" if its start matches the
+    // actual current week — otherwise there's been no usage yet (→ 0%).
+    const thisMonday = mondayISO(new Date());
+    const last = weeks[weeks.length - 1];
+    const cur = last && last.period === thisMonday ? last : null;
+    const resetMs = new Date(thisMonday + "T00:00:00").getTime() + 7 * 86400000;
     _weekly = { cur, tok, peakAll, peakModel, resetMs };
   } catch {}
   return _weekly;
 }
 
 // Real used/peak tokens for a weekly row. key "all" = combined, else model-name substring.
+// used is 0 when the current week has no usage yet.
 function weeklyUsage(key) {
   const w = loadWeekly();
   if (!w) return null;
-  if (key === "all") return { used: w.cur.totalTokens || 0, peak: w.peakAll };
-  const mb = (w.cur.modelBreakdowns || []).find((m) => m.modelName.includes(key));
+  if (key === "all") return { used: w.cur ? w.cur.totalTokens || 0 : 0, peak: w.peakAll };
   let peak = 0;
   for (const [name, p] of Object.entries(w.peakModel)) if (name.includes(key)) peak = Math.max(peak, p);
+  const mb = w.cur ? (w.cur.modelBreakdowns || []).find((m) => m.modelName.includes(key)) : null;
   return { used: mb ? w.tok(mb) : 0, peak };
 }
 
