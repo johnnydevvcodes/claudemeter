@@ -5,7 +5,7 @@ All notable changes to **claudemeter** are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.0.0] — 2026-07-15
+## [1.0.0+6] — 2026-07-15
 
 ### Changed (breaking)
 - **Weekly rows now show REAL token counts instead of a percentage.** The
@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Static manual `%` rows (`{ label, pct, resets }`) are still supported.
 - The `current session` bar remains time-based (elapsed in the 5-hour block).
 
-## [1.3.0] — 2026-07-15
+## [1.0.0+5] — 2026-07-15
 
 ### Added
 - **Smart default budget** for live weekly rows. When no explicit `budget` is
@@ -30,7 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   or fresh weeks scale below it. Configurable via `budgetHeadroom`.
 - Live weekly percentages are capped at 100%.
 
-## [1.2.1] — 2026-07-15
+## [1.0.0+4] — 2026-07-15
 
 ### Fixed
 - Weekly rows now correctly read **0%** when the current calendar week has no
@@ -38,7 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   week entry (a prior week) was mistaken for "this week" and its stale numbers
   were shown. The row now verifies the week matches today before counting usage.
 
-## [1.2.0] — 2026-07-15
+## [1.0.0+3] — 2026-07-15
 
 ### Changed
 - **Weekly rows now show REAL usage.** `all models` and `fable` are driven by
@@ -52,7 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Static placeholder rows (`{ "label", "pct", "resets" }`) still supported for
   anyone who prefers a fixed value.
 
-## [1.1.0] — 2026-07-15
+## [1.0.0+2] — 2026-07-15
 
 ### Changed
 - Default layout now shows three rows out of the box: **current session** (live)
@@ -61,7 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   edited or hidden (`"weekly": []`) in the config.
 - **context** bar is now opt-in (`"showContext": true`) instead of shown by default.
 
-## [1.0.0] — 2026-07-15
+## [1.0.0+1] — 2026-07-15
 
 First public release.
 
@@ -80,9 +80,9 @@ First public release.
   it still points at claudemeter.
 - MIT license, example config, and documentation.
 
-[2.0.0]: https://github.com/johnnydevvcodes/claudemeter/releases/tag/v2.0.0
-[1.3.0]: https://github.com/johnnydevvcodes/claudemeter/releases/tag/v1.3.0
-[1.2.1]: https://github.com/johnnydevvcodes/claudemeter/releases/tag/v1.2.1
-[1.2.0]: https://github.com/johnnydevvcodes/claudemeter/releases/tag/v1.2.0
-[1.1.0]: https://github.com/johnnydevvcodes/claudemeter/releases/tag/v1.1.0
-[1.0.0]: https://github.com/johnnydevvcodes/claudemeter/releases/tag/v1.0.0
+[1.0.0+6]: https://github.com/johnnydevvcodes/claudemeter/releases/tag/v1.0.0%2B6
+[1.0.0+5]: https://github.com/johnnydevvcodes/claudemeter/releases/tag/v1.0.0%2B5
+[1.0.0+4]: https://github.com/johnnydevvcodes/claudemeter/releases/tag/v1.0.0%2B4
+[1.0.0+3]: https://github.com/johnnydevvcodes/claudemeter/releases/tag/v1.0.0%2B3
+[1.0.0+2]: https://github.com/johnnydevvcodes/claudemeter/releases/tag/v1.0.0%2B2
+[1.0.0+1]: https://github.com/johnnydevvcodes/claudemeter/releases/tag/v1.0.0%2B1
