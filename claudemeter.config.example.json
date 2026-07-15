@@ -1,0 +1,8 @@
+{
+  "barWidth": 6,
+  "showContext": true,
+  "weekly": [
+    { "label": "all models", "pct": 24, "resets": "Tue 5:59 AM" },
+    { "label": "fable", "pct": 15, "resets": "Tue 5:59 AM" }
+  ]
+}
