@@ -14,7 +14,7 @@ fable:           ▰▰▰▰▰▰  15%  [resets Tue 5:59 AM]
 ## Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/YOURUSERNAME/claudemeter/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/johnnydevvcodes/claudemeter/main/install.sh | bash
 ```
 
 Then start a new Claude Code session (or reload). That's it.
@@ -28,7 +28,7 @@ The installer will:
 ### Install from a local checkout
 
 ```bash
-git clone https://github.com/YOURUSERNAME/claudemeter.git
+git clone https://github.com/johnnydevvcodes/claudemeter.git
 cd claudemeter
 ./install.sh
 ```
@@ -73,7 +73,7 @@ Create `~/.claude/claudemeter.config.json` (see [`claudemeter.config.example.jso
 ## Uninstall
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/YOURUSERNAME/claudemeter/main/uninstall.sh | bash
+curl -fsSL https://raw.githubusercontent.com/johnnydevvcodes/claudemeter/main/uninstall.sh | bash
 ```
 
 Removes the script and the `statusLine` entry (only if it still points at this tool).

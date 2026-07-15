@@ -3,7 +3,7 @@
 # claudemeter installer
 #
 #   Remote (one-liner):
-#     curl -fsSL https://raw.githubusercontent.com/YOURUSERNAME/claudemeter/main/install.sh | bash
+#     curl -fsSL https://raw.githubusercontent.com/johnnydevvcodes/claudemeter/main/install.sh | bash
 #
 #   Local (from a checkout):
 #     ./install.sh
@@ -11,7 +11,7 @@
 set -euo pipefail
 
 # ---- config (override via env, e.g. GH_USER=me GH_BRANCH=dev bash install.sh) ----
-GH_USER="${GH_USER:-YOURUSERNAME}"
+GH_USER="${GH_USER:-johnnydevvcodes}"
 GH_REPO="${GH_REPO:-claudemeter}"
 GH_BRANCH="${GH_BRANCH:-main}"
 RAW_BASE="https://raw.githubusercontent.com/${GH_USER}/${GH_REPO}/${GH_BRANCH}"
