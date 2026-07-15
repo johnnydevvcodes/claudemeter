@@ -65,6 +65,48 @@ function fmtLeft(ms) {
   const m = Math.round((ms % 3600000) / 60000);
   return (h ? h + "h " : "") + m + "m";
 }
+function fmtLong(ms) {
+  if (ms <= 0) return "0h";
+  const d = Math.floor(ms / 86400000);
+  const h = Math.round((ms % 86400000) / 3600000);
+  return (d ? d + "d " : "") + h + "h";
+}
+
+// Real weekly usage from ccusage (cached; loaded lazily).
+let _weekly;
+function loadWeekly() {
+  if (_weekly !== undefined) return _weekly;
+  _weekly = null;
+  try {
+    const j = JSON.parse(execSync("ccusage weekly --breakdown --json 2>/dev/null", { encoding: "utf8" }));
+    const weeks = j.weekly || [];
+    if (!weeks.length) return _weekly;
+    const tok = (m) => m ? (m.inputTokens || 0) + (m.outputTokens || 0) + (m.cacheCreationTokens || 0) + (m.cacheReadTokens || 0) : 0;
+    const cur = weeks[weeks.length - 1];
+    let peakAll = 0;
+    const peakModel = {};
+    for (const w of weeks) {
+      peakAll = Math.max(peakAll, w.totalTokens || 0);
+      for (const m of w.modelBreakdowns || [])
+        peakModel[m.modelName] = Math.max(peakModel[m.modelName] || 0, tok(m));
+    }
+    let resetMs = null;
+    if (cur.period) resetMs = new Date(cur.period + "T00:00:00").getTime() + 7 * 86400000;
+    _weekly = { cur, tok, peakAll, peakModel, resetMs };
+  } catch {}
+  return _weekly;
+}
+
+// Real used/peak tokens for a weekly row. key "all" = combined, else model-name substring.
+function weeklyUsage(key) {
+  const w = loadWeekly();
+  if (!w) return null;
+  if (key === "all") return { used: w.cur.totalTokens || 0, peak: w.peakAll };
+  const mb = (w.cur.modelBreakdowns || []).find((m) => m.modelName.includes(key));
+  let peak = 0;
+  for (const [name, p] of Object.entries(w.peakModel)) if (name.includes(key)) peak = Math.max(peak, p);
+  return { used: mb ? w.tok(mb) : 0, peak };
+}
 
 const rows = [];
 
@@ -94,19 +136,34 @@ if (cfg.showContext === true) {
   } catch {}
 }
 
-// Weekly plan buckets. THESE ARE STATIC PLACEHOLDERS, not live usage — real
-// plan-limit percentages aren't exposed to any script (only Claude Code's
-// built-in /usage command has them). Shown by default so the layout matches
-// Claude's usage panel; override or disable them in the config file:
-//   "weekly": [ { "label": "all models", "pct": 24, "resets": "Tue 5:59 AM" } ]
-//   "weekly": []   // hides them entirely
+// Weekly rows. Two kinds of entry:
+//   • LIVE  — { label, model: "all" | "<model-substring>", budget?: <tokens>, resets?: text }
+//             pct = this week's real tokens / budget. budget defaults to your
+//             busiest week on record (a real, self-referential ceiling). Set
+//             "budget" to your actual weekly token allowance for a true limit %.
+//   • STATIC — { label, pct, resets }  (a fixed placeholder you edit by hand)
+// NOTE: real plan-limit percentages aren't exposed to any script (only Claude
+// Code's /usage command has them), so LIVE rows are % of a token budget, not
+// of your Anthropic plan cap. Set "weekly": [] to hide these rows.
 const DEFAULT_WEEKLY = [
-  { label: "all models", pct: 24, resets: "Tue 5:59 AM" },
-  { label: "fable", pct: 15, resets: "Tue 5:59 AM" },
+  { label: "all models", model: "all" },
+  { label: "fable", model: "fable" },
 ];
 const weekly = Array.isArray(cfg.weekly) ? cfg.weekly : DEFAULT_WEEKLY;
-for (const w of weekly)
-  rows.push({ label: w.label, pct: w.pct, reset: w.resets ? "resets " + w.resets : "" });
+for (const w of weekly) {
+  if (w.model) {
+    const u = weeklyUsage(w.model);
+    if (!u) continue; // no ccusage data — skip rather than show a fake number
+    const budget = w.budget || u.peak || 1;
+    const pct = Math.round((u.used / budget) * 100);
+    let reset = w.resets ? "resets " + w.resets : "";
+    const wk = loadWeekly();
+    if (!w.resets && wk && wk.resetMs) reset = "resets in " + fmtLong(wk.resetMs - Date.now());
+    rows.push({ label: w.label, pct, reset });
+  } else {
+    rows.push({ label: w.label, pct: w.pct, reset: w.resets ? "resets " + w.resets : "" });
+  }
+}
 
 if (!rows.length) {
   process.stdout.write("claudemeter: no data — is `ccusage` installed and Claude Code active?");

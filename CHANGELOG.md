@@ -5,6 +5,20 @@ All notable changes to **claudemeter** are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] — 2026-07-15
+
+### Changed
+- **Weekly rows now show REAL usage.** `all models` and `fable` are driven by
+  live `ccusage` weekly token data instead of static placeholders, with a real
+  countdown to the calendar-week rollover.
+
+### Added
+- Live weekly row config: `{ "label", "model", "budget?", "resets?" }`. `model`
+  is `"all"` or a model-name substring; `budget` (tokens) sets the percentage
+  ceiling. Without a budget, the row falls back to % of your busiest week.
+- Static placeholder rows (`{ "label", "pct", "resets" }`) still supported for
+  anyone who prefers a fixed value.
+
 ## [1.1.0] — 2026-07-15
 
 ### Changed
@@ -33,5 +47,6 @@ First public release.
   it still points at claudemeter.
 - MIT license, example config, and documentation.
 
+[1.2.0]: https://github.com/johnnydevvcodes/claudemeter/releases/tag/v1.2.0
 [1.1.0]: https://github.com/johnnydevvcodes/claudemeter/releases/tag/v1.1.0
 [1.0.0]: https://github.com/johnnydevvcodes/claudemeter/releases/tag/v1.0.0

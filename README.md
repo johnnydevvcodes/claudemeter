@@ -35,21 +35,24 @@ cd claudemeter
 
 ## What the bars mean
 
-The default layout shows three rows:
+The default layout shows three rows, **all driven by real data**:
 
 | Row | Source | Live? |
 |---|---|---|
-| **current session** | Elapsed % of your active 5-hour block, with a reset countdown | ✅ **live** (via `ccusage`) |
-| **all models** | A **static placeholder** value | ✍️ **manual** — edit in config |
-| **fable** | A **static placeholder** value | ✍️ **manual** — edit in config |
+| **current session** | Elapsed % of your active 5-hour block, with a reset countdown | ✅ **live** |
+| **all models** | Your **real** combined weekly token usage (via `ccusage`) | ✅ **live** |
+| **fable** | Your **real** weekly token usage for Fable models | ✅ **live** |
 | **context** *(opt-in)* | Context-window fill % of the current conversation | ✅ **live** |
 
-> ### ⚠️ The weekly rows are placeholders, not your real usage
-> `all models` and `fable` ship with fixed example numbers (`24%` / `15%`) **only so the layout matches Claude's usage panel**. They are the **same on every machine** and do **not** reflect anyone's actual weekly usage.
+The weekly rows show **this week's actual token usage** as a percentage of a **budget** (a ceiling you set), with a reset countdown to the calendar-week rollover.
+
+> ### ℹ️ About the weekly percentage — set a `budget`
+> A percentage needs a ceiling. Your **true plan-limit** (what Claude's `/usage` panel divides by) lives on Anthropic's servers and is **not exposed to any script** — only Claude Code's built-in `/usage` can read it. So claudemeter divides your real usage by a **budget you choose**:
 >
-> **Why can't they be real?** Your true plan-limit percentages (the ones in Claude's `/usage` panel) live on Anthropic's servers and are **not exposed to any script** — only Claude Code's built-in `/usage` command can read them. The only genuinely live bars a local tool can produce are **current session** and **context**.
+> - **With a `budget`** (recommended) — `pct = this week's tokens ÷ your weekly token allowance`. Meaningful and honest.
+> - **Without a `budget`** — it falls back to *% of your busiest week on record*, which is real but often reads **100%** during a heavy week.
 >
-> **To make the line honest for you:** edit the values in the config, or set `"weekly": []` to hide the placeholder rows entirely and rely on the live ones.
+> Set `budget` (in tokens) per row in the config, or `"weekly": []` to hide these rows and rely on `current session` alone.
 
 ## Configure (optional)
 
@@ -58,10 +61,10 @@ Create `~/.claude/claudemeter.config.json` (see [`claudemeter.config.example.jso
 ```json
 {
   "barWidth": 6,
-  "showContext": true,
+  "showContext": false,
   "weekly": [
-    { "label": "all models", "pct": 24, "resets": "Tue 5:59 AM" },
-    { "label": "fable", "pct": 15, "resets": "Tue 5:59 AM" }
+    { "label": "all models", "model": "all", "budget": 250000000 },
+    { "label": "fable", "model": "fable", "budget": 20000000 }
   ]
 }
 ```
@@ -70,7 +73,14 @@ Create `~/.claude/claudemeter.config.json` (see [`claudemeter.config.example.jso
 |---|---|---|
 | `barWidth` | `6` | Number of segments per bar |
 | `showContext` | `false` | Show the live context-window bar (opt-in) |
-| `weekly` | `all models 24%`, `fable 15%` | Static placeholder buckets: `label`, `pct` (0–100), optional `resets` text. Set to `[]` to hide them. |
+| `weekly` | live `all models` + `fable` | Weekly rows (see below). Set to `[]` to hide them. |
+
+**Weekly row entries** can be either:
+
+| Style | Fields | Behavior |
+|---|---|---|
+| **Live** (recommended) | `label`, `model`, `budget?`, `resets?` | Real weekly tokens ÷ `budget`. `model` is `"all"` or a model-name substring (e.g. `"fable"`, `"opus"`, `"sonnet"`). `budget` is in tokens; omit it to use *% of your peak week*. `resets` overrides the auto week-rollover countdown. |
+| **Static** | `label`, `pct`, `resets?` | A fixed placeholder number you edit by hand. |
 
 ## How it works — and is it safe?
 

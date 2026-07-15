@@ -1,8 +1,8 @@
 {
   "barWidth": 6,
-  "showContext": true,
+  "showContext": false,
   "weekly": [
-    { "label": "all models", "pct": 24, "resets": "Tue 5:59 AM" },
-    { "label": "fable", "pct": 15, "resets": "Tue 5:59 AM" }
+    { "label": "all models", "model": "all", "budget": 250000000 },
+    { "label": "fable", "model": "fable", "budget": 20000000 }
   ]
 }
