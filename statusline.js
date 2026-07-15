@@ -2,25 +2,30 @@
 /**
  * claudemeter — a Claude Code status line with live usage bars.
  *
- * Shows, on every prompt:
- *   • current session : how far into the active 5-hour block you are (+ reset countdown)
- *   • context         : context-window fill %
- *   • (optional)      : static weekly plan buckets you define in a config file
+ * Shows, on every prompt (default layout):
+ *   • current session : how far into the active 5-hour block you are (+ reset countdown)  [LIVE]
+ *   • all models      : static placeholder weekly bucket (edit in config)                 [MANUAL]
+ *   • fable           : static placeholder weekly bucket (edit in config)                 [MANUAL]
+ *   • context         : context-window fill % — opt-in via "showContext": true            [LIVE]
  *
  * Everything runs locally via `ccusage` reading ~/.claude logs — it sends
  * nothing to any API and consumes zero tokens / plan quota.
  *
+ * IMPORTANT: the "all models" / "fable" percentages are STATIC placeholders,
+ * not your real usage. Real plan-limit percentages aren't available to any
+ * script (only Claude Code's built-in /usage command has them). Edit or hide
+ * them via the config file.
+ *
  * Optional config: ~/.claude/claudemeter.config.json
  *   {
  *     "barWidth": 6,
- *     "showContext": true,
+ *     "showContext": false,
  *     "weekly": [
  *       { "label": "all models", "pct": 24, "resets": "Tue 5:59 AM" },
  *       { "label": "fable",      "pct": 15, "resets": "Tue 5:59 AM" }
  *     ]
  *   }
- * Plan-limit percentages are NOT available to any script (only Claude Code's
- * built-in /usage command has them), so weekly buckets are values you edit by hand.
+ * Set "weekly": [] to hide the placeholder rows entirely.
  */
 const { execSync } = require("child_process");
 const fs = require("fs");
@@ -80,7 +85,8 @@ try {
 } catch {}
 
 // context (live): parsed from ccusage's own status line (it reads the transcript)
-if (cfg.showContext !== false) {
+// Opt-in — set "showContext": true in the config to display it.
+if (cfg.showContext === true) {
   try {
     const base = execSync("ccusage statusline 2>/dev/null", { input, encoding: "utf8" }).trim();
     const m = base.match(/🧠[^(]*\((\d+)%\)/);
@@ -88,8 +94,18 @@ if (cfg.showContext !== false) {
   } catch {}
 }
 
-// optional static weekly plan buckets (edit-by-hand in the config file)
-for (const w of cfg.weekly || [])
+// Weekly plan buckets. THESE ARE STATIC PLACEHOLDERS, not live usage — real
+// plan-limit percentages aren't exposed to any script (only Claude Code's
+// built-in /usage command has them). Shown by default so the layout matches
+// Claude's usage panel; override or disable them in the config file:
+//   "weekly": [ { "label": "all models", "pct": 24, "resets": "Tue 5:59 AM" } ]
+//   "weekly": []   // hides them entirely
+const DEFAULT_WEEKLY = [
+  { label: "all models", pct: 24, resets: "Tue 5:59 AM" },
+  { label: "fable", pct: 15, resets: "Tue 5:59 AM" },
+];
+const weekly = Array.isArray(cfg.weekly) ? cfg.weekly : DEFAULT_WEEKLY;
+for (const w of weekly)
   rows.push({ label: w.label, pct: w.pct, reset: w.resets ? "resets " + w.resets : "" });
 
 if (!rows.length) {

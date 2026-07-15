@@ -35,13 +35,21 @@ cd claudemeter
 
 ## What the bars mean
 
-| Bucket | Source | Live? |
-|---|---|---|
-| **current session** | Elapsed % of your active 5-hour block, with a reset countdown | ✅ live (via `ccusage`) |
-| **context** | Context-window fill % of the current conversation | ✅ live |
-| **weekly buckets** (`all models`, `fable`, …) | Values **you** put in the config file | ✍️ manual |
+The default layout shows three rows:
 
-> **Why are weekly buckets manual?** Your real plan-limit percentages (the ones in Claude's `/usage` panel) live on Anthropic's servers and are **not exposed to any script** — only Claude Code's built-in `/usage` command can read them. So `claudemeter` shows the two things a local tool *can* know for real (session + context), and lets you optionally pin weekly reminders you update by hand.
+| Row | Source | Live? |
+|---|---|---|
+| **current session** | Elapsed % of your active 5-hour block, with a reset countdown | ✅ **live** (via `ccusage`) |
+| **all models** | A **static placeholder** value | ✍️ **manual** — edit in config |
+| **fable** | A **static placeholder** value | ✍️ **manual** — edit in config |
+| **context** *(opt-in)* | Context-window fill % of the current conversation | ✅ **live** |
+
+> ### ⚠️ The weekly rows are placeholders, not your real usage
+> `all models` and `fable` ship with fixed example numbers (`24%` / `15%`) **only so the layout matches Claude's usage panel**. They are the **same on every machine** and do **not** reflect anyone's actual weekly usage.
+>
+> **Why can't they be real?** Your true plan-limit percentages (the ones in Claude's `/usage` panel) live on Anthropic's servers and are **not exposed to any script** — only Claude Code's built-in `/usage` command can read them. The only genuinely live bars a local tool can produce are **current session** and **context**.
+>
+> **To make the line honest for you:** edit the values in the config, or set `"weekly": []` to hide the placeholder rows entirely and rely on the live ones.
 
 ## Configure (optional)
 
@@ -61,8 +69,8 @@ Create `~/.claude/claudemeter.config.json` (see [`claudemeter.config.example.jso
 | Key | Default | Meaning |
 |---|---|---|
 | `barWidth` | `6` | Number of segments per bar |
-| `showContext` | `true` | Show the context-window bar |
-| `weekly` | `[]` | Static buckets: `label`, `pct` (0–100), optional `resets` text |
+| `showContext` | `false` | Show the live context-window bar (opt-in) |
+| `weekly` | `all models 24%`, `fable 15%` | Static placeholder buckets: `label`, `pct` (0–100), optional `resets` text. Set to `[]` to hide them. |
 
 ## How it works — and is it safe?
 

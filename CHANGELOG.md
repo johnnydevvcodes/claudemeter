@@ -5,6 +5,15 @@ All notable changes to **claudemeter** are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] — 2026-07-15
+
+### Changed
+- Default layout now shows three rows out of the box: **current session** (live)
+  plus **all models** and **fable** static placeholder buckets, matching Claude's
+  usage panel. The placeholder rows are clearly documented as non-live and can be
+  edited or hidden (`"weekly": []`) in the config.
+- **context** bar is now opt-in (`"showContext": true`) instead of shown by default.
+
 ## [1.0.0] — 2026-07-15
 
 First public release.
@@ -24,4 +33,5 @@ First public release.
   it still points at claudemeter.
 - MIT license, example config, and documentation.
 
+[1.1.0]: https://github.com/johnnydevvcodes/claudemeter/releases/tag/v1.1.0
 [1.0.0]: https://github.com/johnnydevvcodes/claudemeter/releases/tag/v1.0.0
